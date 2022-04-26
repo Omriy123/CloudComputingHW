@@ -174,7 +174,7 @@ Resources:
       PayloadFormatVersion: '2.0'
       ApiId: !Ref ParkingLotGA
       IntegrationType: AWS_PROXY
-PLRouteEntry:
+  PLRouteEntry:
     Type: 'AWS::ApiGatewayV2::Route'
     DependsOn:
       - PLApiLambdProxyIntegration
@@ -198,7 +198,7 @@ PLRouteEntry:
         - /
         - - integrations
           - !Ref PLApiLambdProxyIntegration
-PLApiTriggerLambdaPermission:
+  PLApiTriggerLambdaPermission:
     Type: 'AWS::Lambda::Permission'
     DependsOn: ParkingLotGA
     Properties:
