@@ -1,66 +1,4 @@
 AWSTemplateFormatVersion: 2010-09-09
-Metadata:
-  'AWS::CloudFormation::Designer':
-    abe7920e-6c3b-454a-b9c3-a7495a7cfe80:
-      size:
-        width: 60
-        height: 60
-      position:
-        x: 120
-        'y': 180
-      z: 1
-      embeds: []
-      dependson:
-        - bc2ab6af-a6df-4973-ac96-2a8a54f0cf77
-    97d4c88f-be3e-4096-9b4e-4ac983a6e01b:
-      size:
-        width: 60
-        height: 60
-      position:
-        x: 330
-        'y': 210
-      z: 1
-      embeds: []
-    bc2ab6af-a6df-4973-ac96-2a8a54f0cf77:
-      size:
-        width: 60
-        height: 60
-      position:
-        x: 210
-        'y': 270
-      z: 1
-      embeds: []
-      dependson:
-        - 97d4c88f-be3e-4096-9b4e-4ac983a6e01b
-    12e493a5-004c-435f-b7c8-07d78c2ed03e:
-      size:
-        width: 60
-        height: 60
-      position:
-        x: 210
-        'y': 90
-      z: 1
-      embeds: []
-    4a7de82d-2888-44cc-b372-ced057fbce68:
-      size:
-        width: 60
-        height: 60
-      position:
-        x: 330
-        'y': 90
-      z: 1
-      embeds: []
-    0a8e4701-d0bb-4c3f-a30d-b5c0e503cd6c:
-      size:
-        width: 60
-        height: 60
-      position:
-        x: -20
-        'y': 190
-      z: 1
-      embeds: []
-      dependson:
-        - abe7920e-6c3b-454a-b9c3-a7495a7cfe80
 Resources:
   ParkingLot:
     Type: 'AWS::Lambda::Function'
@@ -158,9 +96,6 @@ Resources:
               # }
             
               return return_data
-    Metadata:
-      'AWS::CloudFormation::Designer':
-        id: abe7920e-6c3b-454a-b9c3-a7495a7cfe80
     DeletionPolicy: Delete
     DependsOn:
       - ParkingLotDB
@@ -201,9 +136,6 @@ Resources:
                   - 'logs:CreateLogGroup'
                   - 'logs:PutLogEvents'
                 Resource: '*'
-    Metadata:
-      'AWS::CloudFormation::Designer':
-        id: 97d4c88f-be3e-4096-9b4e-4ac983a6e01b
     DeletionPolicy: Delete
   ParkingLotDB:
     Type: 'AWS::DynamoDB::Table'
@@ -218,9 +150,6 @@ Resources:
       ProvisionedThroughput:
         ReadCapacityUnits: '5'
         WriteCapacityUnits: '5'
-    Metadata:
-      'AWS::CloudFormation::Designer':
-        id: bc2ab6af-a6df-4973-ac96-2a8a54f0cf77
     DeletionPolicy: Delete
     DependsOn:
       - ParkingLotIamRole
@@ -231,9 +160,6 @@ Resources:
       ProtocolType: HTTP
       Target: !Sub >-
         arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ParkingLot}/invocations
-    Metadata:
-      'AWS::CloudFormation::Designer':
-        id: 0a8e4701-d0bb-4c3f-a30d-b5c0e503cd6c
     DependsOn:
       - ParkingLot
   PLApiLambdProxyIntegration:
@@ -248,10 +174,7 @@ Resources:
       PayloadFormatVersion: '2.0'
       ApiId: !Ref ParkingLotGA
       IntegrationType: AWS_PROXY
-    Metadata:
-      'AWS::CloudFormation::Designer':
-        id: 12e493a5-004c-435f-b7c8-07d78c2ed03e
-  PLRouteEntry:
+PLRouteEntry:
     Type: 'AWS::ApiGatewayV2::Route'
     DependsOn:
       - PLApiLambdProxyIntegration
@@ -275,10 +198,7 @@ Resources:
         - /
         - - integrations
           - !Ref PLApiLambdProxyIntegration
-    Metadata:
-      'AWS::CloudFormation::Designer':
-        id: 4a7de82d-2888-44cc-b372-ced057fbce68
-  PLApiTriggerLambdaPermission:
+PLApiTriggerLambdaPermission:
     Type: 'AWS::Lambda::Permission'
     DependsOn: ParkingLotGA
     Properties:
