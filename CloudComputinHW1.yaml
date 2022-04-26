@@ -1,0 +1,313 @@
+AWSTemplateFormatVersion: 2010-09-09
+Metadata:
+  'AWS::CloudFormation::Designer':
+    abe7920e-6c3b-454a-b9c3-a7495a7cfe80:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 120
+        'y': 180
+      z: 1
+      embeds: []
+      dependson:
+        - bc2ab6af-a6df-4973-ac96-2a8a54f0cf77
+    97d4c88f-be3e-4096-9b4e-4ac983a6e01b:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 330
+        'y': 210
+      z: 1
+      embeds: []
+    bc2ab6af-a6df-4973-ac96-2a8a54f0cf77:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 210
+        'y': 270
+      z: 1
+      embeds: []
+      dependson:
+        - 97d4c88f-be3e-4096-9b4e-4ac983a6e01b
+    12e493a5-004c-435f-b7c8-07d78c2ed03e:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 210
+        'y': 90
+      z: 1
+      embeds: []
+    4a7de82d-2888-44cc-b372-ced057fbce68:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 330
+        'y': 90
+      z: 1
+      embeds: []
+    0a8e4701-d0bb-4c3f-a30d-b5c0e503cd6c:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: -20
+        'y': 190
+      z: 1
+      embeds: []
+      dependson:
+        - abe7920e-6c3b-454a-b9c3-a7495a7cfe80
+Resources:
+  ParkingLot:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Handler: index.lambda_handler
+      Runtime: python3.9
+      Role: !GetAtt ParkingLotIamRole.Arn
+      Code:
+        ZipFile: |
+          import json
+          import boto3
+          import uuid
+          from datetime import datetime
+
+          client = boto3.client('dynamodb')
+          print('Loading function')
+
+
+          def lambda_handler(event, context):
+              action = event['rawPath']
+              
+              if action == '/ParkingLot/entry':
+                  return entry(event)
+              else:
+                  if action == '/ParkingLot/exit':
+                      return exit(event)
+
+              raise Exception('Choose Action entry/exit')
+              # return 'Choose Action entry/exit'
+
+
+
+          def entry(event):    
+              plate = event['queryStringParameters']['plate']
+              print(event)
+              parking_lot = event['queryStringParameters']['parkingLot']
+              ticketId = str(uuid.uuid4())
+              #print("Received event: " + json.dumps(event, indent=2))
+              print("value1 = " + event['queryStringParameters']['plate'])
+              data = client.put_item(
+                  TableName='ParkingLotTable2',
+                  Item={
+                      'ticketId': {
+                          'S':ticketId
+                      },
+                      'parkingLot': {
+                          'S':parking_lot
+                      },
+                      'startTime': {
+                          'S':str(datetime.now()) 
+                      },
+                      'plate': {
+                          'S':plate
+                      }
+                  }
+                )
+              return { 'ticketId': ticketId } # Echo back the first key value
+              
+
+
+          def exit(event):  
+              ticketId = event['queryStringParameters']['ticketId']
+              data = client.get_item(
+                  TableName='ParkingLotTable2',
+                  Key={
+                      'ticketId': {
+                        'S': ticketId
+                      }
+                  }
+                )
+                
+              print(data['Item']['startTime']['S'])  
+              startdatetime = datetime.fromisoformat(data['Item']['startTime']['S'])  
+              diff_minutes = int((datetime.now() - startdatetime).total_seconds() / 60)
+              print(diff_minutes)
+              
+              price_15_minutes = 2.5
+              
+              total_price = price_15_minutes * (diff_minutes // 15)
+              
+              return_data = {
+                  'plate': data['Item']['plate']['S'],
+                  'totalParkedTimeInMinutes': diff_minutes,
+                  'parkingLot': data['Item']['parkingLot']['S'],
+                  'charge': total_price
+              }
+              
+              # response = {
+              #   'statusCode': 200,
+              #   'body': json.dumps(return_data),
+              #   'headers': {
+              #     'Content-Type': 'application/json',
+              #     'Access-Control-Allow-Origin': '*'
+              #   },
+              # }
+            
+              return return_data
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: abe7920e-6c3b-454a-b9c3-a7495a7cfe80
+    DeletionPolicy: Delete
+    DependsOn:
+      - ParkingLotDB
+  ParkingLotIamRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: Policy_api-lambda-db
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'dynamodb:BatchGetItem'
+                  - 'dynamodb:BatchWriteItem'
+                  - 'dynamodb:TagResource'
+                  - 'dynamodb:UntagResource'
+                  - 'dynamodb:PutItem'
+                  - 'dynamodb:DeleteItem'
+                  - 'dynamodb:GetItem'
+                  - 'dynamodb:Scan'
+                  - 'dynamodb:Query'
+                  - 'dynamodb:UpdateItem'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'logs:CreateLogStream'
+                  - 'logs:CreateLogGroup'
+                  - 'logs:PutLogEvents'
+                Resource: '*'
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 97d4c88f-be3e-4096-9b4e-4ac983a6e01b
+    DeletionPolicy: Delete
+  ParkingLotDB:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      TableName: ParkingLotTable2
+      AttributeDefinitions:
+        - AttributeName: ticketId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: ticketId
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: '5'
+        WriteCapacityUnits: '5'
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: bc2ab6af-a6df-4973-ac96-2a8a54f0cf77
+    DeletionPolicy: Delete
+    DependsOn:
+      - ParkingLotIamRole
+  ParkingLotGA:
+    Type: 'AWS::ApiGatewayV2::Api'
+    Properties:
+      Name: ParkingLotGA
+      ProtocolType: HTTP
+      Target: !Sub >-
+        arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ParkingLot}/invocations
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 0a8e4701-d0bb-4c3f-a30d-b5c0e503cd6c
+    DependsOn:
+      - ParkingLot
+  PLApiLambdProxyIntegration:
+    Type: 'AWS::ApiGatewayV2::Integration'
+    DependsOn: PLApiTriggerLambdaPermission
+    Properties:
+      Description: Lambda Integration
+      ConnectionType: INTERNET
+      IntegrationMethod: POST
+      IntegrationUri: !Sub >-
+        arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ParkingLot.Arn}/invocations
+      PayloadFormatVersion: '2.0'
+      ApiId: !Ref ParkingLotGA
+      IntegrationType: AWS_PROXY
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 12e493a5-004c-435f-b7c8-07d78c2ed03e
+  PLRouteEntry:
+    Type: 'AWS::ApiGatewayV2::Route'
+    DependsOn:
+      - PLApiLambdProxyIntegration
+    Properties:
+      ApiId: !Ref ParkingLotGA
+      RouteKey: POST /ParkingLot/entry
+      AuthorizationType: NONE
+      Target: !Join 
+        - /
+        - - integrations
+          - !Ref PLApiLambdProxyIntegration
+  PLRouteExit:
+    Type: 'AWS::ApiGatewayV2::Route'
+    DependsOn:
+      - PLApiLambdProxyIntegration
+    Properties:
+      ApiId: !Ref ParkingLotGA
+      RouteKey: POST /ParkingLot/exit
+      AuthorizationType: NONE
+      Target: !Join 
+        - /
+        - - integrations
+          - !Ref PLApiLambdProxyIntegration
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 4a7de82d-2888-44cc-b372-ced057fbce68
+  PLApiTriggerLambdaPermission:
+    Type: 'AWS::Lambda::Permission'
+    DependsOn: ParkingLotGA
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName: !GetAtt ParkingLot.Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub >-
+        arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ParkingLotGA}
+  PLEntryApiTriggerLambdaPermission:
+    Type: 'AWS::Lambda::Permission'
+    DependsOn: ParkingLotGA
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName: !GetAtt ParkingLot.Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub >-
+        arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ParkingLotGA}/*/*/ParkingLot/entry
+  PLExitApiTriggerLambdaPermission:
+    Type: 'AWS::Lambda::Permission'
+    DependsOn: ParkingLotGA
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName: !GetAtt ParkingLot.Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub >-
+        arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ParkingLotGA}/*/*/ParkingLot/exit
+  PLApiDeployment:
+    Type: 'AWS::ApiGatewayV2::Deployment'
+    Properties:
+        ApiId: !Ref ParkingLotGA
+        StageName: $default
+  
